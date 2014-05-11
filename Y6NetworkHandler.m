@@ -71,37 +71,6 @@
     return ERROR_CODE_NO_INTERNET;
 }
 
-//- (NSMutableURLRequest *)getRequestWithserviceAddress:(NSString *)serviceAddress postDict:(NSDictionary *)postParamDict getDict:(NSDictionary *)getParamDict
-//{
-//    NSURL *url = [NSURL URLWithString:serviceAddress];
-//    
-//    NSMutableURLRequest *request;
-////    AFHTTPClient *httpClient;
-//    
-//    
-//    if (postParamDict)
-//    {
-////        httpClient = [[AFHTTPClient alloc] initWithBaseURL:url];
-//        request = [request requestWithMethod:@"POST" path:serviceAddress parameters:postParamDict];
-//    }
-//    else if (getParamDict)
-//    {
-//        if (!httpClient)
-//            httpClient = [[AFHTTPClient alloc] initWithBaseURL:url];
-//        request = [httpClient requestWithMethod:@"GET" path:serviceAddress parameters:getParamDict];
-//    }
-//    if (!request)
-//    {
-//        request = [NSMutableURLRequest requestWithURL:url];
-//    }
-//    
-//
-//    
-//    [request setValue:[[[UIWebView alloc] init] stringByEvaluatingJavaScriptFromString:@"navigator.userAgent"] forHTTPHeaderField:@"User-Agent"];
-//    
-//    return request;
-//}
-
 - (void)getJsonParsedFrom:(NSString *)serviceAddress withPostParameters:(NSDictionary *)postParamDict andGetParameters:(NSDictionary *)getParamDict completion:(void ( ^ ) ( id JSON ))completionBlock
 {
     if (!ready)
