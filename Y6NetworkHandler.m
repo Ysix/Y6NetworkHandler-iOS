@@ -8,56 +8,24 @@
 #import "AFNetworking.h"
 #import "Reachability.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 @implementation Y6NetworkHandler
-
-- (id)init
-{
-	if (self = [super init])
-	{
-
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged:) name:kReachabilityChangedNotification object:nil];
-
-        internetReachability = [Reachability reachabilityForInternetConnection];
-        [internetReachability startNotifier];
-
-        ready = NO;
-
-        stack = [[NSMutableArray alloc] init];
-	}
-	return  self;
-}
-
-- (id)initWithServerIp:(NSString *)serverIp
-{
-	if (self = [self init])
-	{
-		serverAddress = serverIp;
-
-		struct sockaddr_in callAddress;
-		callAddress.sin_len = sizeof(callAddress);
-		callAddress.sin_family = AF_INET;
-		callAddress.sin_port = htons(8001);
-		callAddress.sin_addr.s_addr = inet_addr([serverIp cStringUsingEncoding:NSUTF8StringEncoding]);
-
-		hostReachability = [Reachability reachabilityWithAddress:&callAddress];
-		[hostReachability startNotifier];
-	}
-	return  self;
-}
 
 - (id)initWithServerAddress:(NSString *)url
 {
     if (self = [self init])
     {
-		serverAddress = url;
-		hostReachability = [Reachability reachabilityWithHostName:serverAddress];
-		[hostReachability startNotifier];
+        serverAddress = url;
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged:) name:kReachabilityChangedNotification object:nil];
+        
+        internetReachability = [Reachability reachabilityForInternetConnection];
+        hostReachability = [Reachability reachabilityWithHostName:serverAddress];
+        [internetReachability startNotifier];
+        [hostReachability startNotifier];
+
+        ready = NO;
+        
+        stack = [[NSMutableArray alloc] init];
     }
     return self;
 }

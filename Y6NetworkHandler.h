@@ -34,7 +34,6 @@
 }
 
 - (id)initWithServerAddress:(NSString *)url;
-- (id)initWithServerIp:(NSString *)serverIp;
 
 - (int)isConnectedToInternet;
 
