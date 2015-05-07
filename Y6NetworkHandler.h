@@ -18,6 +18,13 @@
 #define ERROR_CODE_HOST_UNREACHABLE -2
 #define ERROR_CODE_REQUEST_FAILED   -3
 
+typedef enum {
+	GET = 0,
+	POST,
+	PUT,
+	DELETE
+} HTTPMethod;
+
 @class Reachability;
 
 @interface Y6NetworkHandler : NSObject
@@ -37,6 +44,10 @@
 
 - (int)isConnectedToInternet;
 
+- (void)jsonParsedBy:(HTTPMethod)method from:(NSString *)serviceAddress withParameters:(NSDictionary *)paramDict completion:(void (^)(id))completionBlock;
+
+
+// deprecated
 - (void)getJsonParsedFrom:(NSString *)serviceAddress withPostParameters:(NSDictionary *)postParamDict andGetParameters:(NSDictionary *)getParamDict completion:(void ( ^ ) ( id JSON ))completionBlock;
 
 @end

@@ -53,7 +53,7 @@
         
         for (NSDictionary *dict in stack)
         {
-            [self getJsonParsedFrom:[dict objectForKey:@"serviceAddress"] withPostParameters:[dict objectForKey:@"postParamDict"] andGetParameters:[dict objectForKey:@"getParamDict"] completion:[dict objectForKey:@"completionBlock"]];
+			[self jsonParsedBy:[[dict objectForKey:@"methodNumber"] intValue] from:[dict objectForKey:@"serviceAddress"] withParameters:[dict objectForKey:@"paramDict"] completion:[dict objectForKey:@"completionBlock"]];
         }
     }
 }
@@ -73,57 +73,85 @@
 
 - (void)getJsonParsedFrom:(NSString *)serviceAddress withPostParameters:(NSDictionary *)postParamDict andGetParameters:(NSDictionary *)getParamDict completion:(void ( ^ ) ( id JSON ))completionBlock
 {
-    if (!ready)
-    {
-        NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-        
-        if (serviceAddress)
-            [dict setObject:serviceAddress forKey:@"serviceAddress"];
-        if (postParamDict)
-            [dict setObject:postParamDict forKey:@"postParamDict"];
-        if (getParamDict)
-            [dict setObject:getParamDict forKey:@"getParamDict"];
-        if (completionBlock)
-            [dict setObject:completionBlock forKey:@"completionBlock"];
-        
-        [stack addObject:dict];
-        
-        return;
-    }
-    
-    int connectionStatus = [self isConnectedToInternet];
-    
-    if (connectionStatus < 1)
-    {
-        completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", connectionStatus], @"message" : (connectionStatus == ERROR_CODE_HOST_UNREACHABLE ? @"The host is unreachable, please try again later." : @"You don't have an internet connection, or it's too slow.")}});
-        return;
-    }
-    
-    if (postParamDict)
-    {
-        [[AFHTTPSessionManager manager] POST:serviceAddress parameters:postParamDict success:^(NSURLSessionDataTask *task, id responseObject) {
-            completionBlock(responseObject);
-
-        } failure:^(NSURLSessionDataTask *task, NSError *error) {
-            
-            NSLog(@"error network handler : %@", [error localizedDescription]);
-
-            completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", ERROR_CODE_REQUEST_FAILED], @"message" : @"An error occurred, please try again."}});
-        }];
-    }
-    else
-    {
-        [[AFHTTPSessionManager manager] GET:serviceAddress parameters:getParamDict success:^(NSURLSessionDataTask *task, id responseObject) {
-            completionBlock(responseObject);
-            
-        } failure:^(NSURLSessionDataTask *task, NSError *error) {
-            
-            NSLog(@"error network handler : %@", [error localizedDescription]);
-            
-            completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", ERROR_CODE_REQUEST_FAILED], @"message" : @"An error occurred, please try again."}});
-        }];
-    }
-    
+	if (postParamDict)
+	{
+		[self jsonParsedBy:POST from:serviceAddress withParameters:postParamDict completion:completionBlock];
+	}
+	else
+	{
+		[self jsonParsedBy:GET from:serviceAddress withParameters:postParamDict completion:completionBlock];
+	}
 }
+
+- (void)jsonParsedBy:(HTTPMethod)method from:(NSString *)serviceAddress withParameters:(NSDictionary *)paramDict completion:(void (^)(id))completionBlock
+{
+	if (!ready)
+	{
+		NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+		if (serviceAddress)
+			[dict setObject:serviceAddress forKey:@"serviceAddress"];
+		if (paramDict)
+			[dict setObject:paramDict forKey:@"paramDict"];
+		if (method)
+			[dict setObject:[NSNumber numberWithInt:method] forKey:@"methodNumber"];
+		if (completionBlock)
+			[dict setObject:completionBlock forKey:@"completionBlock"];
+		[stack addObject:dict];
+		return;
+	}
+	int connectionStatus = [self isConnectedToInternet];
+
+	if (connectionStatus < 1)
+	{
+		completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", connectionStatus], @"message" : (connectionStatus == ERROR_CODE_HOST_UNREACHABLE ? @"The host is unreachable, please try again later." : @"You don't have an internet connection, or it's too slow.")}});
+		return;
+	}
+
+	void (^successBlock)(NSURLSessionDataTask *, id ) = ^void(NSURLSessionDataTask *task, id responseObject)
+	{
+#if DEBUG
+		NSLog(@"got : %@", responseObject);
+#endif
+		completionBlock(responseObject);
+	};
+
+	void (^failureBlock)(NSURLSessionDataTask *, NSError *) = ^void(NSURLSessionDataTask *task, NSError *error) {
+		NSLog(@"error network handler : %@", [error localizedDescription]);
+		completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", ERROR_CODE_REQUEST_FAILED], @"message" : @"An error occurred, please try again."}});
+	};
+
+#if DEBUG
+
+	NSLog(@"make %d on %@ with parameters %@", method, serviceAddress, paramDict);
+
+#endif
+
+	switch (method)
+	{
+		case GET:
+		{
+			[[AFHTTPSessionManager manager] GET:serviceAddress parameters:paramDict success:successBlock failure:failureBlock];
+			break;
+		}
+		case POST:
+		{
+			[[AFHTTPSessionManager manager] POST:serviceAddress parameters:paramDict success:successBlock failure:failureBlock];
+			break;
+		}
+		case PUT:
+		{
+			[[AFHTTPSessionManager manager] PUT:serviceAddress parameters:paramDict success:successBlock failure:failureBlock];
+			break;
+		}
+		case DELETE:
+		{
+			[[AFHTTPSessionManager manager] DELETE:serviceAddress parameters:paramDict success:successBlock failure:failureBlock];
+			break;
+		}
+		default:
+			break;
+	}
+}
+
 
 @end
