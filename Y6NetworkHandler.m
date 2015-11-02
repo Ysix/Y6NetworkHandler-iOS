@@ -12,66 +12,75 @@
 
 - (id)initWithServerAddress:(NSString *)url
 {
-    if (self = [self init])
-    {
-        serverAddress = url;
-        
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged:) name:kReachabilityChangedNotification object:nil];
-        
-        internetReachability = [Reachability reachabilityForInternetConnection];
-        hostReachability = [Reachability reachabilityWithHostName:serverAddress];
-        [internetReachability startNotifier];
-        [hostReachability startNotifier];
+	if (self = [self init])
+	{
+		serverAddress = url;
 
-        ready = NO;
-        
-        stack = [[NSMutableArray alloc] init];
-    }
-    return self;
+		[[NSNotificationCenter defaultCenter] addObserver:self
+		                                         selector:@selector(reachabilityChanged:)
+		                                             name:kReachabilityChangedNotification
+		                                           object:nil];
+
+		internetReachability = [Reachability reachabilityForInternetConnection];
+		hostReachability = [Reachability reachabilityWithHostName:serverAddress];
+		[internetReachability startNotifier];
+		[hostReachability startNotifier];
+
+		ready = NO;
+
+		stack = [[NSMutableArray alloc] init];
+	}
+	return self;
 }
 
 - (void)reachabilityChanged:(NSNotification *)note
 {
-    NSLog(@"Reachability Changed");
-    
-    Reachability* curReach = [note object];
-    
-    NSParameterAssert([curReach isKindOfClass:[Reachability class]]);
+	NSLog(@"Reachability Changed");
 
-    if (curReach == internetReachability)
-    {
-        internetReachable = ([curReach currentReachabilityStatus] == NotReachable ? NO : YES);
-    }
-    else if (curReach == hostReachability)
-    {
-        hostReachable = ([curReach currentReachabilityStatus] == NotReachable ? NO : YES);
-    }
-    
-    if (!ready)
-    {
-        ready = YES;
-        
-        for (NSDictionary *dict in stack)
-        {
-			[self jsonParsedBy:[[dict objectForKey:@"methodNumber"] intValue] from:[dict objectForKey:@"serviceAddress"] withParameters:[dict objectForKey:@"paramDict"] completion:[dict objectForKey:@"completionBlock"]];
-        }
-    }
+	Reachability *curReach = [note object];
+
+	NSParameterAssert([curReach isKindOfClass:[Reachability class]]);
+
+	if (curReach == internetReachability)
+	{
+		internetReachable = ([curReach currentReachabilityStatus] == NotReachable ? NO : YES);
+	}
+	else if (curReach == hostReachability)
+	{
+		hostReachable = ([curReach currentReachabilityStatus] == NotReachable ? NO : YES);
+	}
+
+	if (!ready)
+	{
+		ready = YES;
+
+		for (NSDictionary *dict in stack)
+		{
+			[self jsonParsedBy:[[dict objectForKey:@"methodNumber"] intValue]
+			              from:[dict objectForKey:@"serviceAddress"]
+			    withParameters:[dict objectForKey:@"paramDict"]
+			        completion:[dict objectForKey:@"completionBlock"]];
+		}
+	}
 }
 
 - (int)isConnectedToInternet
 {
-    if (internetReachable || hostReachable)
-    {
-        if (hostReachable)
-        {
-            return 1;
-        }
-        return ERROR_CODE_HOST_UNREACHABLE;
-    }
-    return ERROR_CODE_NO_INTERNET;
+	if (internetReachable || hostReachable)
+	{
+		if (hostReachable)
+		{
+			return 1;
+		}
+		return ERROR_CODE_HOST_UNREACHABLE;
+	}
+	return ERROR_CODE_NO_INTERNET;
 }
 
-- (void)getJsonParsedFrom:(NSString *)serviceAddress withPostParameters:(NSDictionary *)postParamDict andGetParameters:(NSDictionary *)getParamDict completion:(void ( ^ ) ( id JSON ))completionBlock
+- (void)getJsonParsedFrom:(NSString *)serviceAddress
+       withPostParameters:(NSDictionary *)postParamDict
+         andGetParameters:(NSDictionary *)getParamDict
+               completion:(void (^)(id JSON))completionBlock
 {
 	if (postParamDict)
 	{
@@ -83,7 +92,10 @@
 	}
 }
 
-- (void)jsonParsedBy:(HTTPMethod)method from:(NSString *)serviceAddress withParameters:(NSDictionary *)paramDict completion:(void (^)(id))completionBlock
+- (void)jsonParsedBy:(HTTPMethod)method
+                from:(NSString *)serviceAddress
+      withParameters:(NSDictionary *)paramDict
+          completion:(void (^)(id))completionBlock
 {
 	if (!ready)
 	{
@@ -103,21 +115,34 @@
 
 	if (connectionStatus < 1)
 	{
-		completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", connectionStatus], @"message" : (connectionStatus == ERROR_CODE_HOST_UNREACHABLE ? @"The host is unreachable, please try again later." : @"You don't have an internet connection, or it's too slow.")}});
+		completionBlock(@{
+			@"success" : @"0",
+			@"error" : @{
+				@"code" : [NSString stringWithFormat:@"%d", connectionStatus],
+				@"message" : (connectionStatus == ERROR_CODE_HOST_UNREACHABLE
+				                  ? @"The host is unreachable, please try again later."
+				                  : @"You don't have an internet connection, or it's too slow.")
+			}
+		});
 		return;
 	}
 
-	void (^successBlock)(NSURLSessionDataTask *, id ) = ^void(NSURLSessionDataTask *task, id responseObject)
-	{
+	void (^successBlock)(NSURLSessionDataTask *, id) = ^void(NSURLSessionDataTask *task, id responseObject) {
 #if DEBUG
-		NSLog(@"got : %@", responseObject);
+	  NSLog(@"got : %@", responseObject);
 #endif
-		completionBlock(responseObject);
+	  completionBlock(responseObject);
 	};
 
 	void (^failureBlock)(NSURLSessionDataTask *, NSError *) = ^void(NSURLSessionDataTask *task, NSError *error) {
-		NSLog(@"error network handler : %@", [error localizedDescription]);
-		completionBlock(@{@"success" : @"0", @"error" : @{@"code" : [NSString stringWithFormat:@"%d", ERROR_CODE_REQUEST_FAILED], @"message" : @"An error occurred, please try again."}});
+	  NSLog(@"error network handler : %@", [error localizedDescription]);
+	  completionBlock(@{
+		  @"success" : @"0",
+		  @"error" : @{
+			  @"code" : [NSString stringWithFormat:@"%d", ERROR_CODE_REQUEST_FAILED],
+			  @"message" : @"An error occurred, please try again."
+		  }
+	  });
 	};
 
 #if DEBUG
